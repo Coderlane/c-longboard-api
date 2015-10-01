@@ -1,57 +1,22 @@
 /**
  * @file longboard_controller_internal.h
- * @brief 
+ * @brief
  * @author Travis Lane
- * @version 
- * @date 2014-10-08
+ * @version 0.0.1
+ * @date 2015-09-29
  */
-
 
 #ifndef LONGBOARD_CONTROLLER_INTERNAL_H
 #define LONGBOARD_CONTROLLER_INTERNAL_H
 
-#define LC_WHEELS_PER_TRUCK 2
 
 #include <stdint.h>
 #include <longboard_controller.h>
 
 
+struct lc_motor_t {
+  struct usp_pwm_t *lcm_pwm;
 
-/**
- * @brief A struct representing a wheel.
- */
-struct lc_wheel_spec_t {
-	/**
-	 * @brief Width of the wheel.
-	 */
-	uint8_t lcw_width;
-
-	/**
-	 * @brief Diameter of the wheel.
-	 */
-	uint8_t lcw_diameter;
-};
-
-/**
- * @brief A struct representing a truck with two wheels.
- */
-struct lc_truck_spec_t {
-	/**
-	 * @brief The specifications of the attached wheels.
-	 * Please use two of the same size wheels...
-	 */
-	struct lc_wheel_spec_t lcts_wheel_spec;
-
-	/**
-	 * @brief The stated width of the truck.
-	 */
-	uint16_t lcts_width;
-
-	/**
-	 * @brief The actual center of wheel to center of wheel width. 
-	 * If set by hand this will be exact, otherwise it is an estimate.
-	 */
-	uint16_t lcts_center_width;
 };
 
 /**
@@ -59,10 +24,7 @@ struct lc_truck_spec_t {
  */
 struct lc_throttle_t {
 
-	/**
-	 * @brief The specifications of the attached truck and wheels.
-	 */
-	struct lc_truck_spec_t lct_truck_spec;
+
 };
 
 #endif /* LONGBOARD_CONTROLLER_INTERNAL_H */

@@ -10,7 +10,6 @@
 #ifndef LONGBOARD_CONTROLLER_H
 #define LONGBOARD_CONTROLLER_H
 
-struct lc_throttle_t;
 
 
 #endif /* LONGBOARD_CONTROLLER_H */
