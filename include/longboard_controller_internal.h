@@ -9,22 +9,20 @@
 #ifndef LONGBOARD_CONTROLLER_INTERNAL_H
 #define LONGBOARD_CONTROLLER_INTERNAL_H
 
-
 #include <stdint.h>
 #include <longboard_controller.h>
 
-
-struct lc_motor_t {
-  struct usp_pwm_t *lcm_pwm;
-
-};
+struct usp_pwm_t;
+struct usp_controller_t;
 
 /**
  * @brief The master throttle
  */
 struct lc_throttle_t {
+  struct usp_controller_t *lct_pwm_controller;
 
-
+  struct usp_pwm_t *lct_pwm_left;
+  struct usp_pwm_t *lct_pwm_right;
 };
 
 #endif /* LONGBOARD_CONTROLLER_INTERNAL_H */
