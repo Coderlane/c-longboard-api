@@ -69,12 +69,12 @@ lc_throttle_delete(struct lc_throttle_t *throttle)
 }
 
 /**
- * @brief
+ * @brief Set the current power level of a throttle.
  *
- * @param throttle
- * @param power
+ * @param throttle The throttle to set the power level of.
+ * @param power The power level to set as a percentage.
  *
- * @return
+ * @return A status code.
  */
 int
 lc_throttle_power_set(struct lc_throttle_t *throttle, float power)
@@ -101,12 +101,12 @@ out:
 }
 
 /**
- * @brief
+ * @brief Get the current power level of a throttle.
  *
- * @param throttle
- * @param out_power
+ * @param throttle The throttle to get the power level of.
+ * @param out_power The power level of the throttle as a percentage.
  *
- * @return
+ * @return A status code.
  */
 int
 lc_throttle_power_get(struct lc_throttle_t *throttle, float *out_power)
@@ -140,6 +140,11 @@ out:
   return rc;
 }
 
+/**
+ * @brief Set the speeds on the pwms to 0, then disable them.
+ *
+ * @param throttle The throttle to fail out.
+ */
 void
 lc_throttle_fail(struct lc_throttle_t *throttle)
 {
