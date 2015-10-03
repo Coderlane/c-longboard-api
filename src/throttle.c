@@ -1,4 +1,5 @@
 /**
+ *
  * @file throttle.c
  * @brief
  * @author Travis Lane
@@ -12,6 +13,7 @@
 
 #include <libusp/pwm.h>
 
+#include "errors.h"
 #include "controller.h"
 #include "controller_internal.h"
 
@@ -64,4 +66,86 @@ lc_throttle_delete(struct lc_throttle_t *throttle)
   usp_pwm_unref(throttle->lct_pwm_left);
   usp_pwm_unref(throttle->lct_pwm_right);
   free(throttle);
+}
+
+/**
+ * @brief
+ *
+ * @param throttle
+ * @param power
+ *
+ * @return
+ */
+int
+lc_throttle_power_set(struct lc_throttle_t *throttle, float power)
+{
+  int rc;
+
+  rc = usp_pwm_set_duty_cycle(throttle->lct_pwm_left, power);
+  if (rc != USP_OK) {
+    goto out;
+  }
+
+  rc = usp_pwm_set_duty_cycle(throttle->lct_pwm_right, power);
+  if (rc != USP_OK) {
+    goto out;
+  }
+
+out:
+  if(rc != 0) {
+    rc = LC_PWM_ERROR;
+    lc_throttle_fail(throttle);
+  }
+
+  return rc;
+}
+
+/**
+ * @brief
+ *
+ * @param throttle
+ * @param out_power
+ *
+ * @return
+ */
+int
+lc_throttle_power_get(struct lc_throttle_t *throttle, float *out_power)
+{
+  int rc;
+  float power_left, power_right;
+
+  rc = usp_pwm_get_duty_cycle(throttle->lct_pwm_left, &power_left);
+  if(rc != USP_OK) {
+    goto out;
+  }
+
+  rc = usp_pwm_get_duty_cycle(throttle->lct_pwm_right, &power_right);
+  if(rc != USP_OK) {
+    goto out;
+  }
+
+  if(power_left != power_right) {
+    rc = LC_PWM_ERROR;
+    goto out;
+  }
+
+out:
+  if(rc != 0) {
+    rc = LC_PWM_ERROR;
+    lc_throttle_fail(throttle);
+  } else {
+    *out_power = power_left;
+  }
+
+  return rc;
+}
+
+void
+lc_throttle_fail(struct lc_throttle_t *throttle)
+{
+  usp_pwm_set_duty_cycle(throttle->lct_pwm_left, 0.0f);
+  usp_pwm_set_duty_cycle(throttle->lct_pwm_right, 0.0f);
+
+  usp_pwm_disable(throttle->lct_pwm_left);
+  usp_pwm_disable(throttle->lct_pwm_right);
 }

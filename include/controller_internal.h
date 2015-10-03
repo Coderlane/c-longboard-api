@@ -25,4 +25,6 @@ struct lc_throttle_t {
   struct usp_pwm_t *lct_pwm_right;
 };
 
+void lc_throttle_fail(struct lc_throttle_t *throttle);
+
 #endif /* LONGBOARD_CONTROLLER_INTERNAL_H */
