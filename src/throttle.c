@@ -12,8 +12,8 @@
 
 #include <libusp/pwm.h>
 
-#include "longboard_controller.h"
-#include "longboard_controller_internal.h"
+#include "controller.h"
+#include "controller_internal.h"
 
 /**
  * @brief Create a new throttle.

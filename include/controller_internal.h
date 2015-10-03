@@ -10,7 +10,7 @@
 #define LONGBOARD_CONTROLLER_INTERNAL_H
 
 #include <stdint.h>
-#include <longboard_controller.h>
+#include "controller.h"
 
 struct usp_pwm_t;
 struct usp_controller_t;
