@@ -7,6 +7,8 @@
  */
 
 enum lc_error_t {
+  LC_NET_ERROR = -4,
   LC_PWM_ERROR = -2,
-  LC_OK = 0
+  LC_OK = 0,
+  LC_RETRY = 2
 };
