@@ -21,6 +21,15 @@
 #include "comm_internal.h"
 #include "errors.h"
 
+/**
+ * @brief Create a generic comm object.
+ *
+ * @param type The type of comm object.
+ * @param ctx The context for the specific comm object.
+ * @param delete_func The delete func for the comm object.
+ *
+ * @return A new comm object.
+ */
 struct lc_comm_t *
 lc_comm_new(enum lc_comm_type_t type, void *ctx,
             lc_comm_delete_func delete_func)
@@ -37,12 +46,24 @@ lc_comm_new(enum lc_comm_type_t type, void *ctx,
   return comm;
 }
 
+/**
+ * @brief Delete a generic comm object.
+ *
+ * @param comm The comm object to delete.
+ */
 void
 lc_comm_delete(struct lc_comm_t *comm)
 {
   comm->lcc_delete_func(comm);
 }
 
+/**
+ * @brief Create a new comm object based on a bluetooth comm.
+ *
+ * @param addr The bluetooth address to connect to.
+ *
+ * @return A new comm object.
+ */
 struct lc_comm_t *
 lc_comm_bt_new(const char *addr)
 {
@@ -55,6 +76,11 @@ lc_comm_bt_new(const char *addr)
   return lc_comm_new(LC_COMM_BT, bt_comm, lc_comm_bt_delete);
 }
 
+/**
+ * @brief Delete a bluetooth comm object and the parent comm.
+ *
+ * @param comm The comm to delete.
+ */
 void
 lc_comm_bt_delete(struct lc_comm_t *comm)
 {
@@ -69,6 +95,13 @@ lc_comm_bt_delete(struct lc_comm_t *comm)
   free(comm);
 }
 
+/**
+ * @brief Open a bluetooth socket.
+ *
+ * @param comm The comm object to open the socket on.
+ *
+ * @return A status code.
+ */
 int
 lc_comm_bt_open(struct lc_comm_t *comm)
 {
@@ -89,7 +122,7 @@ lc_comm_bt_open(struct lc_comm_t *comm)
   // Create a socket to connect.
   sock = socket(AF_BLUETOOTH, SOCK_STREAM, BTPROTO_RFCOMM);
   if (sock < 0) {
-    rc = LC_NET_ERROR;
+    rc = LC_COMM_ERROR;
     goto out;
   }
 
@@ -105,7 +138,7 @@ lc_comm_bt_open(struct lc_comm_t *comm)
   // Connect the socket to the remote host.
   rc = connect(sock, (struct sockaddr *)&bt_addr, sizeof(bt_addr));
   if (rc != 0) {
-    rc = LC_NET_ERROR;
+    rc = LC_COMM_ERROR;
     goto out;
   }
 
@@ -120,6 +153,13 @@ out:
   return rc;
 }
 
+/**
+ * @brief Close a bluetooth socket.
+ *
+ * @param comm The comm object to close the socket on.
+ *
+ * @return A status code.
+ */
 int
 lc_comm_bt_close(struct lc_comm_t *comm)
 {
@@ -134,6 +174,14 @@ lc_comm_bt_close(struct lc_comm_t *comm)
   return LC_OK;
 }
 
+/**
+ * @brief Read a power level from the bluetooth socket.
+ *
+ * @param comm The comm object to read.
+ * @param out_power The power level read.
+ *
+ * @return A status code.
+ */
 int
 lc_comm_bt_get_power(struct lc_comm_t *comm, float *out_power)
 {
@@ -146,7 +194,7 @@ lc_comm_bt_get_power(struct lc_comm_t *comm, float *out_power)
   bt_comm = comm->lcc_ctx;
 
   if(bt_comm->lcc_bt_socket < 0) {
-    return LC_NET_ERROR;
+    return LC_COMM_ERROR;
   }
 
   left = sizeof(buf);
@@ -172,5 +220,5 @@ lc_comm_bt_get_power(struct lc_comm_t *comm, float *out_power)
   /*
    * Failed reading somewhere. This is probably a socket error.
    */
-  return LC_NET_ERROR;
+  return LC_COMM_ERROR;
 }
