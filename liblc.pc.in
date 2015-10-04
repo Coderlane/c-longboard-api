@@ -7,6 +7,5 @@ Name: libusp
 Description: A C library for controling a longboard.
 Version: @LIBLC_VERSION@
 Requires.private: libudev >= 150
-Libs: -L${libdir} -llc
-Libs.private: -ludev
+Libs: -L${libdir} -llc -lbluetooth -lm
 Cflags: -I${includedir}
