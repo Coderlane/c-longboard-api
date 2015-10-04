@@ -11,22 +11,22 @@
 
 #include "comm.h"
 
-typedef void (*lc_comm_delete_func)(struct lc_comm_t *);
+typedef void (*lb_comm_delete_func)(struct lb_comm_t *);
 
-struct lc_comm_t {
-  enum lc_comm_type_t lcc_type;
-  void *lcc_ctx;
+struct lb_comm_t {
+  enum lb_comm_type_t lbc_type;
+  void *lbc_ctx;
 
-  lc_comm_delete_func lcc_delete_func;
+  lb_comm_delete_func lbc_delete_func;
 };
 
-struct lc_comm_bt_t {
-  const char *lcc_bt_addr;
-  int lcc_bt_socket;
+struct lb_comm_bt_t {
+  const char *lbc_bt_addr;
+  int lbc_bt_socket;
 };
 
-struct lc_comm_t *lc_comm_new(enum lc_comm_type_t type, void *ctx,
-                              lc_comm_delete_func delete_func);
-void lc_comm_bt_delete(struct lc_comm_t *comm);
+struct lb_comm_t *lb_comm_new(enum lb_comm_type_t type, void *ctx,
+                              lb_comm_delete_func delete_func);
+void lb_comm_bt_delete(struct lb_comm_t *comm);
 
 #endif /* LONGBOARD_COMM_INTERNAL */

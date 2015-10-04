@@ -10,46 +10,53 @@
 #include <assert.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 
 #include <libusp/pwm.h>
 
 #include "errors.h"
-#include "controller.h"
-#include "controller_internal.h"
+#include "throttle.h"
+#include "throttle_internal.h"
 
 /**
  * @brief Create a new throttle.
  *
  * @return A new throttle.
  */
-struct lc_throttle_t *
-lc_throttle_new()
+struct lb_throttle_t *
+lb_throttle_new()
 {
-  struct lc_throttle_t *throttle;
+  struct lb_throttle_t *throttle;
   struct usp_pwm_list_t *pwm_list;
   struct usp_pwm_list_entry_t *pwm_entry;
   struct usp_pwm_t *pwm;
 
-  throttle = calloc(sizeof(struct lc_throttle_t), 1);
+  throttle = calloc(sizeof(struct lb_throttle_t), 1);
 
-  throttle->lct_pwm_controller = usp_controller_new();
+  throttle->lbt_pwm_controller = usp_controller_new();
 
-  pwm_list = usp_controller_get_pwms(throttle->lct_pwm_controller);
+  pwm_list = usp_controller_get_pwms(throttle->lbt_pwm_controller);
   usp_pwm_list_foreach(pwm_list, pwm_entry)
   {
     pwm = usp_pwm_list_entry_get_pwm(pwm_entry);
     if (strcmp(usp_pwm_get_name(pwm), "odc1_pwm0") == 0) {
       usp_pwm_ref(pwm);
-      throttle->lct_pwm_left = pwm;
+      throttle->lbt_pwm_left = pwm;
     } else if (strcmp(usp_pwm_get_name(pwm), "odc1_pwm1") == 0) {
       usp_pwm_ref(pwm);
-      throttle->lct_pwm_right = pwm;
+      throttle->lbt_pwm_right = pwm;
     }
   }
   usp_pwm_list_unref(pwm_list);
 
-  assert(throttle->lct_pwm_left != NULL);
-  assert(throttle->lct_pwm_right != NULL);
+  assert(throttle->lbt_pwm_left != NULL);
+  assert(throttle->lbt_pwm_right != NULL);
+
+
+  throttle->lbt_running = true;
+
+  pthread_create (&(throttle->lbt_thread), NULL,
+      lb_throttle_runner, throttle);
 
   return throttle;
 }
@@ -60,13 +67,30 @@ lc_throttle_new()
  * @param throttle The throttle to delete.
  */
 void
-lc_throttle_delete(struct lc_throttle_t *throttle)
+lb_throttle_delete(struct lb_throttle_t *throttle)
 {
-  usp_controller_delete(throttle->lct_pwm_controller);
-  usp_pwm_unref(throttle->lct_pwm_left);
-  usp_pwm_unref(throttle->lct_pwm_right);
+  throttle->lbt_running = false;
+  usp_controller_delete(throttle->lbt_pwm_controller);
+  usp_pwm_unref(throttle->lbt_pwm_left);
+  usp_pwm_unref(throttle->lbt_pwm_right);
   free(throttle);
 }
+
+void *
+lb_throttle_runner(void *ctx)
+{
+  struct lb_throttle_t *throttle = ctx;
+  assert(throttle != NULL);
+
+
+   while(throttle->lbt_running) {
+
+
+   }
+
+  return NULL;
+}
+
 
 /**
  * @brief Set the current power level of a throttle.
@@ -77,24 +101,24 @@ lc_throttle_delete(struct lc_throttle_t *throttle)
  * @return A status code.
  */
 int
-lc_throttle_power_set(struct lc_throttle_t *throttle, float power)
+lb_throttle_power_set(struct lb_throttle_t *throttle, float power)
 {
   int rc;
 
-  rc = usp_pwm_set_duty_cycle(throttle->lct_pwm_left, power);
+  rc = usp_pwm_set_duty_cycle(throttle->lbt_pwm_left, power);
   if (rc != USP_OK) {
     goto out;
   }
 
-  rc = usp_pwm_set_duty_cycle(throttle->lct_pwm_right, power);
+  rc = usp_pwm_set_duty_cycle(throttle->lbt_pwm_right, power);
   if (rc != USP_OK) {
     goto out;
   }
 
 out:
   if(rc != 0) {
-    rc = LC_PWM_ERROR;
-    lc_throttle_fail(throttle);
+    rc = LB_PWM_ERROR;
+    lb_throttle_fail(throttle);
   }
 
   return rc;
@@ -109,30 +133,30 @@ out:
  * @return A status code.
  */
 int
-lc_throttle_power_get(struct lc_throttle_t *throttle, float *out_power)
+lb_throttle_power_get(struct lb_throttle_t *throttle, float *out_power)
 {
   int rc;
   float power_left, power_right;
 
-  rc = usp_pwm_get_duty_cycle(throttle->lct_pwm_left, &power_left);
+  rc = usp_pwm_get_duty_cycle(throttle->lbt_pwm_left, &power_left);
   if(rc != USP_OK) {
     goto out;
   }
 
-  rc = usp_pwm_get_duty_cycle(throttle->lct_pwm_right, &power_right);
+  rc = usp_pwm_get_duty_cycle(throttle->lbt_pwm_right, &power_right);
   if(rc != USP_OK) {
     goto out;
   }
 
   if(power_left != power_right) {
-    rc = LC_PWM_ERROR;
+    rc = LB_PWM_ERROR;
     goto out;
   }
 
 out:
   if(rc != 0) {
-    rc = LC_PWM_ERROR;
-    lc_throttle_fail(throttle);
+    rc = LB_PWM_ERROR;
+    lb_throttle_fail(throttle);
   } else {
     *out_power = power_left;
   }
@@ -146,11 +170,11 @@ out:
  * @param throttle The throttle to fail out.
  */
 void
-lc_throttle_fail(struct lc_throttle_t *throttle)
+lb_throttle_fail(struct lb_throttle_t *throttle)
 {
-  usp_pwm_set_duty_cycle(throttle->lct_pwm_left, 0.0f);
-  usp_pwm_set_duty_cycle(throttle->lct_pwm_right, 0.0f);
+  usp_pwm_set_duty_cycle(throttle->lbt_pwm_left, 0.0f);
+  usp_pwm_set_duty_cycle(throttle->lbt_pwm_right, 0.0f);
 
-  usp_pwm_disable(throttle->lct_pwm_left);
-  usp_pwm_disable(throttle->lct_pwm_right);
+  usp_pwm_disable(throttle->lbt_pwm_left);
+  usp_pwm_disable(throttle->lbt_pwm_right);
 }

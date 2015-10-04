@@ -30,18 +30,18 @@
  *
  * @return A new comm object.
  */
-struct lc_comm_t *
-lc_comm_new(enum lc_comm_type_t type, void *ctx,
-            lc_comm_delete_func delete_func)
+struct lb_comm_t *
+lb_comm_new(enum lb_comm_type_t type, void *ctx,
+            lb_comm_delete_func delete_func)
 {
-  struct lc_comm_t *comm;
-  comm = malloc(sizeof(struct lc_comm_t));
+  struct lb_comm_t *comm;
+  comm = malloc(sizeof(struct lb_comm_t));
   assert(comm != NULL);
 
-  comm->lcc_type = type;
-  comm->lcc_ctx = ctx;
+  comm->lbc_type = type;
+  comm->lbc_ctx = ctx;
 
-  comm->lcc_delete_func = delete_func;
+  comm->lbc_delete_func = delete_func;
 
   return comm;
 }
@@ -52,9 +52,9 @@ lc_comm_new(enum lc_comm_type_t type, void *ctx,
  * @param comm The comm object to delete.
  */
 void
-lc_comm_delete(struct lc_comm_t *comm)
+lb_comm_delete(struct lb_comm_t *comm)
 {
-  comm->lcc_delete_func(comm);
+  comm->lbc_delete_func(comm);
 }
 
 /**
@@ -64,16 +64,16 @@ lc_comm_delete(struct lc_comm_t *comm)
  *
  * @return A new comm object.
  */
-struct lc_comm_t *
-lc_comm_bt_new(const char *addr)
+struct lb_comm_t *
+lb_comm_bt_new(const char *addr)
 {
-  struct lc_comm_bt_t *bt_comm;
+  struct lb_comm_bt_t *bt_comm;
 
-  bt_comm = malloc(sizeof(struct lc_comm_bt_t));
-  bt_comm->lcc_bt_addr = addr;
-  bt_comm->lcc_bt_socket = -1;
+  bt_comm = malloc(sizeof(struct lb_comm_bt_t));
+  bt_comm->lbc_bt_addr = addr;
+  bt_comm->lbc_bt_socket = -1;
 
-  return lc_comm_new(LC_COMM_BT, bt_comm, lc_comm_bt_delete);
+  return lb_comm_new(LB_COMM_BT, bt_comm, lb_comm_bt_delete);
 }
 
 /**
@@ -82,13 +82,13 @@ lc_comm_bt_new(const char *addr)
  * @param comm The comm to delete.
  */
 void
-lc_comm_bt_delete(struct lc_comm_t *comm)
+lb_comm_bt_delete(struct lb_comm_t *comm)
 {
-  struct lc_comm_bt_t *bt_comm = comm->lcc_ctx;
-  assert(comm->lcc_type == LC_COMM_BT);
+  struct lb_comm_bt_t *bt_comm = comm->lbc_ctx;
+  assert(comm->lbc_type == LB_COMM_BT);
 
-  if (bt_comm->lcc_bt_socket > 0) {
-    lc_comm_bt_close(comm);
+  if (bt_comm->lbc_bt_socket > 0) {
+    lb_comm_bt_close(comm);
   }
 
   free(bt_comm);
@@ -103,15 +103,15 @@ lc_comm_bt_delete(struct lc_comm_t *comm)
  * @return A status code.
  */
 int
-lc_comm_bt_open(struct lc_comm_t *comm)
+lb_comm_bt_open(struct lb_comm_t *comm)
 {
-  int sock = -1, rc = LC_OK;
-  struct lc_comm_bt_t *bt_comm;
+  int sock = -1, rc = LB_OK;
+  struct lb_comm_bt_t *bt_comm;
   struct sockaddr_rc bt_addr;
   struct timeval timeout;
 
-  assert(comm->lcc_type == LC_COMM_BT);
-  bt_comm = comm->lcc_ctx;
+  assert(comm->lbc_type == LB_COMM_BT);
+  bt_comm = comm->lbc_ctx;
 
   timeout.tv_usec = 0;
   timeout.tv_sec = 2;
@@ -122,7 +122,7 @@ lc_comm_bt_open(struct lc_comm_t *comm)
   // Create a socket to connect.
   sock = socket(AF_BLUETOOTH, SOCK_STREAM, BTPROTO_RFCOMM);
   if (sock < 0) {
-    rc = LC_COMM_ERROR;
+    rc = LB_COMM_ERROR;
     goto out;
   }
 
@@ -133,21 +133,21 @@ lc_comm_bt_open(struct lc_comm_t *comm)
   // Set up the bt_addr
   bt_addr.rc_family = AF_BLUETOOTH;
   bt_addr.rc_channel = (uint8_t)1;
-  str2ba(bt_comm->lcc_bt_addr, &(bt_addr.rc_bdaddr));
+  str2ba(bt_comm->lbc_bt_addr, &(bt_addr.rc_bdaddr));
 
   // Connect the socket to the remote host.
   rc = connect(sock, (struct sockaddr *)&bt_addr, sizeof(bt_addr));
   if (rc != 0) {
-    rc = LC_COMM_ERROR;
+    rc = LB_COMM_ERROR;
     goto out;
   }
 
 out:
-  if (rc != LC_OK) {
+  if (rc != LB_OK) {
     close(sock);
     sock = -1;
   } else {
-    bt_comm->lcc_bt_socket = sock;
+    bt_comm->lbc_bt_socket = sock;
   }
 
   return rc;
@@ -161,17 +161,17 @@ out:
  * @return A status code.
  */
 int
-lc_comm_bt_close(struct lc_comm_t *comm)
+lb_comm_bt_close(struct lb_comm_t *comm)
 {
-  struct lc_comm_bt_t *bt_comm;
+  struct lb_comm_bt_t *bt_comm;
 
-  assert(comm->lcc_type == LC_COMM_BT);
-  bt_comm = comm->lcc_ctx;
+  assert(comm->lbc_type == LB_COMM_BT);
+  bt_comm = comm->lbc_ctx;
 
-  close(bt_comm->lcc_bt_socket);
-  bt_comm->lcc_bt_socket = -1;
+  close(bt_comm->lbc_bt_socket);
+  bt_comm->lbc_bt_socket = -1;
 
-  return LC_OK;
+  return LB_OK;
 }
 
 /**
@@ -183,27 +183,27 @@ lc_comm_bt_close(struct lc_comm_t *comm)
  * @return A status code.
  */
 int
-lc_comm_bt_get_power(struct lc_comm_t *comm, float *out_power)
+lb_comm_bt_get_power(struct lb_comm_t *comm, float *out_power)
 {
   ssize_t size_read, left;
-  struct lc_comm_bt_t *bt_comm;
+  struct lb_comm_bt_t *bt_comm;
   char *start;
   char buf[32];
 
-  assert(comm->lcc_type == LC_COMM_BT);
-  bt_comm = comm->lcc_ctx;
+  assert(comm->lbc_type == LB_COMM_BT);
+  bt_comm = comm->lbc_ctx;
 
-  if(bt_comm->lcc_bt_socket < 0) {
-    return LC_COMM_ERROR;
+  if(bt_comm->lbc_bt_socket < 0) {
+    return LB_COMM_ERROR;
   }
 
   left = sizeof(buf);
   start = buf;
 
-  while ((size_read = read(bt_comm->lcc_bt_socket, start, left)) > 0) {
+  while ((size_read = read(bt_comm->lbc_bt_socket, start, left)) > 0) {
     if (strchr(start, '\n') != NULL) {
       sscanf(buf, "%f", out_power);
-      return LC_OK;
+      return LB_OK;
     } else {
       start += size_read;
       left -= size_read;
@@ -212,7 +212,7 @@ lc_comm_bt_get_power(struct lc_comm_t *comm, float *out_power)
          * XXX: Hack, better validation would be nice.
          * Overflowed the line, retry.
          */
-        return LC_RETRY;
+        return LB_RETRY;
       }
     }
   }
@@ -220,5 +220,5 @@ lc_comm_bt_get_power(struct lc_comm_t *comm, float *out_power)
   /*
    * Failed reading somewhere. This is probably a socket error.
    */
-  return LC_COMM_ERROR;
+  return LB_COMM_ERROR;
 }

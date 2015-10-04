@@ -1,0 +1,11 @@
+prefix=@LIBLB_INSTALL_PREFIX@
+exec_prefix=@LIBLB_INSTALL_EXEC_PREFIX@
+libdir=@LIBLB_INSTALL_LIBDIR@
+includedir=@LIBLB_INSTALL_INCLUDEDIR@
+
+Name: libusp
+Description: A C library for controling a longboard.
+Version: @LIBLB_VERSION@
+Requires.private: libudev >= 150
+Libs: -L${libdir} -llb -lbluetooth -lm
+Cflags: -I${includedir}
