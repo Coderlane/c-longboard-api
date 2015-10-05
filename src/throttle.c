@@ -41,11 +41,14 @@ lb_throttle_new()
   pwm_list = usp_controller_get_pwms(throttle->lbt_pwm_controller);
   usp_pwm_list_foreach(pwm_list, pwm_entry)
   {
+    const char *name;
     pwm = usp_pwm_list_entry_get_pwm(pwm_entry);
-    if (strcmp(usp_pwm_get_name(pwm), "odc1_pwm0") == 0) {
+    name = usp_pwm_get_name(pwm);
+
+    if (strcmp(name, "odc1_pwm0") == 0) {
       usp_pwm_ref(pwm);
       throttle->lbt_pwm_left = pwm;
-    } else if (strcmp(usp_pwm_get_name(pwm), "odc1_pwm1") == 0) {
+    } else if (strcmp(name, "odc1_pwm1") == 0) {
       usp_pwm_ref(pwm);
       throttle->lbt_pwm_right = pwm;
     }
