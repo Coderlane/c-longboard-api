@@ -8,9 +8,12 @@
  */
 
 #include <assert.h>
+#include <errno.h>
+#include <math.h>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#include <unistd.h>
 
 #include <libusp/pwm.h>
 
@@ -52,10 +55,12 @@ lb_throttle_new()
   assert(throttle->lbt_pwm_left != NULL);
   assert(throttle->lbt_pwm_right != NULL);
 
-
   throttle->lbt_running = true;
-
-  pthread_create (&(throttle->lbt_thread), NULL,
+  throttle->lbt_max_accel = LB_THROTTLE_MAX_ACCEL;
+  throttle->lbt_current_power = 0;
+  throttle->lbt_target_power = 0;
+  pthread_mutex_init(&(throttle->lbt_mutex), NULL);
+  pthread_create(&(throttle->lbt_thread), NULL,
       lb_throttle_runner, throttle);
 
   return throttle;
@@ -69,28 +74,138 @@ lb_throttle_new()
 void
 lb_throttle_delete(struct lb_throttle_t *throttle)
 {
-  throttle->lbt_running = false;
+  lb_throttle_set_running(throttle, false);
+
   usp_controller_delete(throttle->lbt_pwm_controller);
   usp_pwm_unref(throttle->lbt_pwm_left);
   usp_pwm_unref(throttle->lbt_pwm_right);
   free(throttle);
 }
 
+/**
+ * @brief Get the running state of a throttle.
+ *
+ * @param throttle The throttle to get the running state of.
+ *
+ * @return The running state of the throttle.
+ */
+bool
+lb_throttle_get_running(struct lb_throttle_t *throttle)
+{
+  bool running;
+
+  pthread_mutex_lock(&(throttle->lbt_mutex));
+  running = throttle->lbt_running;
+  pthread_mutex_unlock(&(throttle->lbt_mutex));
+
+  return running;
+}
+
+/**
+ * @brief Set the running state of a throttle. Note: This doesn't start
+ * the runner thread, but it will stop it.
+ *
+ * @param throttle The throttle to change the running state of.
+ * @param running The new running state.
+ */
+void
+lb_throttle_set_running(struct lb_throttle_t *throttle, bool running)
+{
+  pthread_mutex_lock(&(throttle->lbt_mutex));
+  throttle->lbt_running = running;
+  pthread_mutex_unlock(&(throttle->lbt_mutex));
+}
+
+/**
+ * @brief The throttle thread runner.
+ *
+ * @param ctx The throttle context.
+ *
+ * @return NULL
+ */
 void *
 lb_throttle_runner(void *ctx)
 {
+  int rc;
+  struct timespec sleep_in, sleep_out;
+  struct timespec *sleep_in_ptr, *sleep_out_ptr, *sleep_tmp_ptr;
   struct lb_throttle_t *throttle = ctx;
   assert(throttle != NULL);
 
+  while ((rc = lb_throttle_start_pwms(throttle)) != 0) {
+    sleep(1);
+  }
 
-   while(throttle->lbt_running) {
+  while (lb_throttle_get_running(throttle) == true) {
+    pthread_mutex_lock(&(throttle->lbt_mutex));
+    if (throttle->lbt_current_power != throttle->lbt_target_power) {
+      float diff = throttle->lbt_current_power - throttle->lbt_target_power;
+      float current_power = throttle->lbt_target_power;
 
+      if (fabsf(diff) > LB_THROTTLE_MAX_ACCEL) {
+        current_power = diff > 0 ? current_power + LB_THROTTLE_MAX_ACCEL
+                                 : current_power - LB_THROTTLE_MAX_ACCEL;
+      }
 
-   }
+      /* XXX: Handle failing to set the power better. */
+      rc = lb_throttle_current_set(throttle, current_power);
+      if(rc == LB_OK) {
+        throttle->lbt_current_power = current_power;
+      } else {
+        throttle->lbt_current_power = 0.0f;
+      }
+    }
+    pthread_mutex_unlock(&(throttle->lbt_mutex));
+
+    sleep_in.tv_sec = LB_THROTTLE_SEC_SLEEP;
+    sleep_in.tv_nsec = LB_THROTTLE_NSEC_SLEEP;
+
+    sleep_in_ptr = &sleep_in;
+    sleep_out_ptr = &sleep_out;
+
+    while ((rc = nanosleep(sleep_in_ptr, sleep_out_ptr)) == EINTR) {
+      sleep_tmp_ptr = sleep_in_ptr;
+      sleep_in_ptr = sleep_out_ptr;
+      sleep_out_ptr = sleep_tmp_ptr;
+    }
+  }
 
   return NULL;
 }
 
+/**
+ * @brief Set the requested power level.
+ *
+ * @param throttle The throttle to set.
+ * @param power The power level requested.
+ *
+ * @return A status code.
+ */
+int
+lb_throttle_request_set(struct lb_throttle_t *throttle, float power)
+{
+  pthread_mutex_lock(&(throttle->lbt_mutex));
+  throttle->lbt_target_power = power;
+  pthread_mutex_unlock(&(throttle->lbt_mutex));
+  return LB_OK;
+}
+
+/**
+ * @brief Get the value of the requested power level.
+ *
+ * @param throttle The throttle to get the value of.
+ * @param out_power The power level that is currently requested.
+ *
+ * @return A status code.
+ */
+int
+lb_throttle_request_get(struct lb_throttle_t *throttle, float *out_power)
+{
+  pthread_mutex_lock(&(throttle->lbt_mutex));
+  *out_power = throttle->lbt_target_power;
+  pthread_mutex_unlock(&(throttle->lbt_mutex));
+  return LB_OK;
+}
 
 /**
  * @brief Set the current power level of a throttle.
@@ -101,7 +216,7 @@ lb_throttle_runner(void *ctx)
  * @return A status code.
  */
 int
-lb_throttle_power_set(struct lb_throttle_t *throttle, float power)
+lb_throttle_current_set(struct lb_throttle_t *throttle, float power)
 {
   int rc;
 
@@ -118,7 +233,7 @@ lb_throttle_power_set(struct lb_throttle_t *throttle, float power)
 out:
   if(rc != 0) {
     rc = LB_PWM_ERROR;
-    lb_throttle_fail(throttle);
+    lb_throttle_stop_pwms(throttle);
   }
 
   return rc;
@@ -133,7 +248,7 @@ out:
  * @return A status code.
  */
 int
-lb_throttle_power_get(struct lb_throttle_t *throttle, float *out_power)
+lb_throttle_current_get(struct lb_throttle_t *throttle, float *out_power)
 {
   int rc;
   float power_left, power_right;
@@ -156,7 +271,7 @@ lb_throttle_power_get(struct lb_throttle_t *throttle, float *out_power)
 out:
   if(rc != 0) {
     rc = LB_PWM_ERROR;
-    lb_throttle_fail(throttle);
+    lb_throttle_stop_pwms(throttle);
   } else {
     *out_power = power_left;
   }
@@ -167,14 +282,68 @@ out:
 /**
  * @brief Set the speeds on the pwms to 0, then disable them.
  *
- * @param throttle The throttle to fail out.
+ * @param throttle The throttle to stop_pwms out.
  */
-void
-lb_throttle_fail(struct lb_throttle_t *throttle)
+int
+lb_throttle_start_pwms(struct lb_throttle_t *throttle)
 {
-  usp_pwm_set_duty_cycle(throttle->lbt_pwm_left, 0.0f);
-  usp_pwm_set_duty_cycle(throttle->lbt_pwm_right, 0.0f);
+  int rc;
 
-  usp_pwm_disable(throttle->lbt_pwm_left);
-  usp_pwm_disable(throttle->lbt_pwm_right);
+  rc = usp_pwm_set_duty_cycle(throttle->lbt_pwm_left, 0.0f);
+  if (rc != 0) {
+    goto out;
+  }
+  rc = usp_pwm_set_duty_cycle(throttle->lbt_pwm_right, 0.0f);
+  if (rc != 0) {
+    goto out;
+  }
+
+  rc = usp_pwm_enable(throttle->lbt_pwm_left);
+  if (rc != 0) {
+    goto out;
+  }
+  rc = usp_pwm_enable(throttle->lbt_pwm_right);
+  if (rc != 0) {
+    goto out;
+  }
+
+out:
+  if (rc != 0) {
+    lb_throttle_stop_pwms(throttle);
+    rc = LB_PWM_ERROR;
+  }
+
+  return rc;
+}
+
+/**
+ * @brief Set the speeds on the pwms to 0, then disable them.
+ *
+ * @param throttle The throttle to stop_pwms out.
+ */
+int
+lb_throttle_stop_pwms(struct lb_throttle_t *throttle)
+{
+  int rc, rc_out = LB_OK;
+
+  rc = usp_pwm_set_duty_cycle(throttle->lbt_pwm_left, 0.0f);
+  if (rc != 0) {
+    rc_out = LB_PWM_ERROR;
+  }
+  rc = usp_pwm_set_duty_cycle(throttle->lbt_pwm_right, 0.0f);
+  if (rc != 0) {
+    rc_out = LB_PWM_ERROR;
+  }
+
+  rc = usp_pwm_disable(throttle->lbt_pwm_left);
+  if (rc != 0) {
+    rc_out = LB_PWM_ERROR;
+  }
+
+  rc = usp_pwm_disable(throttle->lbt_pwm_right);
+  if (rc != 0) {
+    rc_out = LB_PWM_ERROR;
+  }
+
+  return rc_out;
 }

@@ -27,15 +27,21 @@ struct lb_throttle_t {
   struct usp_pwm_t *lbt_pwm_left;
   struct usp_pwm_t *lbt_pwm_right;
 
+  float lbt_current_power;
+  float lbt_target_power;
+  float lbt_max_accel;
+
   bool lbt_running;
   pthread_t lbt_thread;
   pthread_mutex_t lbt_mutex;
 };
 
-void lb_throttle_fail(struct lb_throttle_t *throttle);
+int lb_throttle_stop_pwms(struct lb_throttle_t *throttle);
+int lb_throttle_start_pwms(struct lb_throttle_t *throttle);
+
 void* lb_throttle_runner(void *ctx);
 
 bool lb_throttle_get_running(struct lb_throttle_t *throttle);
-void lb_throttle_set_running(struct lb_throttle_t *throttle);
+void lb_throttle_set_running(struct lb_throttle_t *throttle, bool running);
 
 #endif /* LONGBOARD_THROTTLE_INTERNAL_H */
