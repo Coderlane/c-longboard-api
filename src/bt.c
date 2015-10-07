@@ -22,42 +22,6 @@
 #include "errors.h"
 
 /**
- * @brief Create a generic comm object.
- *
- * @param type The type of comm object.
- * @param ctx The context for the specific comm object.
- * @param delete_func The delete func for the comm object.
- *
- * @return A new comm object.
- */
-struct lb_comm_t *
-lb_comm_new(enum lb_comm_type_t type, void *ctx,
-            lb_comm_delete_func delete_func)
-{
-  struct lb_comm_t *comm;
-  comm = malloc(sizeof(struct lb_comm_t));
-  assert(comm != NULL);
-
-  comm->lbc_type = type;
-  comm->lbc_ctx = ctx;
-
-  comm->lbc_delete_func = delete_func;
-
-  return comm;
-}
-
-/**
- * @brief Delete a generic comm object.
- *
- * @param comm The comm object to delete.
- */
-void
-lb_comm_delete(struct lb_comm_t *comm)
-{
-  comm->lbc_delete_func(comm);
-}
-
-/**
  * @brief Create a new comm object based on a bluetooth comm.
  *
  * @param addr The bluetooth address to connect to.
