@@ -7,6 +7,8 @@
  */
 
 enum lb_error_t {
+  LB_NOT_FOUND = -3,
+  LB_THROTTLE_ERROR = -3,
   LB_COMM_ERROR = -2,
   LB_PWM_ERROR = -1,
   LB_OK = 0,

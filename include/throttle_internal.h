@@ -27,6 +27,9 @@ struct lb_throttle_t {
   struct usp_pwm_t *lbt_pwm_left;
   struct usp_pwm_t *lbt_pwm_right;
 
+  const char *lbt_pwm_left_name;
+  const char *lbt_pwm_right_name;
+
   float lbt_current_power;
   float lbt_target_power;
   float lbt_max_accel;
@@ -36,10 +39,14 @@ struct lb_throttle_t {
   pthread_mutex_t lbt_mutex;
 };
 
+struct lb_throttle_t *lb_throttle_internal_new(const char *pwm_left,
+                                               const char *pwm_right);
+struct lb_throttle_t *lb_throttle_test_new();
+
 int lb_throttle_stop_pwms(struct lb_throttle_t *throttle);
 int lb_throttle_start_pwms(struct lb_throttle_t *throttle);
 
-void* lb_throttle_runner(void *ctx);
+void *lb_throttle_runner(void *ctx);
 
 bool lb_throttle_get_running(struct lb_throttle_t *throttle);
 void lb_throttle_set_running(struct lb_throttle_t *throttle, bool running);

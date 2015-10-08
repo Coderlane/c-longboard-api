@@ -9,7 +9,6 @@
 #ifndef LONGBOARD_THROTTLE_H
 #define LONGBOARD_THROTTLE_H
 
-
 /**
  * @brief The maximum amount of power to change by in cycle. If you
  * change the cycle, don't forget to change this value.
@@ -17,6 +16,7 @@
  * Currently 10% of power per second.
  */
 #define LB_THROTTLE_MAX_ACCEL 0.1f
+
 /**
  * @brief The time in seconds to sleep before changing the power level.
  */
@@ -29,6 +29,9 @@
 
 struct lb_throttle_t *lb_throttle_new();
 void lb_throttle_delete(struct lb_throttle_t *throttle);
+
+int lb_throttle_start(struct lb_throttle_t *throttle);
+int lb_throttle_stop(struct lb_throttle_t *throttle);
 
 int lb_throttle_request_set(struct lb_throttle_t *throttle, float power);
 int lb_throttle_request_get(struct lb_throttle_t *throttle, float *out_power);

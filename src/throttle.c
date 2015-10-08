@@ -22,6 +22,46 @@
 #include "throttle_internal.h"
 
 /**
+ * @brief
+ *
+ * @param pwm_left
+ * @param pwm_right
+ *
+ * @return
+ */
+struct lb_throttle_t *
+lb_throttle_internal_new(const char *pwm_left, const char *pwm_right)
+{
+  struct lb_throttle_t *throttle;
+  throttle = calloc(sizeof(struct lb_throttle_t), 1);
+
+  throttle->lbt_pwm_controller = usp_controller_new();
+
+  pthread_mutex_init(&(throttle->lbt_mutex), NULL);
+
+  throttle->lbt_pwm_left_name = pwm_left;
+  throttle->lbt_pwm_right_name = pwm_right;
+
+  throttle->lbt_running = false;
+  throttle->lbt_max_accel = LB_THROTTLE_MAX_ACCEL;
+  throttle->lbt_current_power = 0;
+  throttle->lbt_target_power = 0;
+
+  return throttle;
+}
+
+/**
+ * @brief
+ *
+ * @return
+ */
+struct lb_throttle_t *
+lb_throttle_test_new()
+{
+  return lb_throttle_internal_new("test_pwm0", "test_pwm1");
+}
+
+/**
  * @brief Create a new throttle.
  *
  * @return A new throttle.
@@ -29,44 +69,7 @@
 struct lb_throttle_t *
 lb_throttle_new()
 {
-  struct lb_throttle_t *throttle;
-  struct usp_pwm_list_t *pwm_list;
-  struct usp_pwm_list_entry_t *pwm_entry;
-  struct usp_pwm_t *pwm;
-
-  throttle = calloc(sizeof(struct lb_throttle_t), 1);
-
-  throttle->lbt_pwm_controller = usp_controller_new();
-
-  pwm_list = usp_controller_get_pwms(throttle->lbt_pwm_controller);
-  usp_pwm_list_foreach(pwm_list, pwm_entry)
-  {
-    const char *name;
-    pwm = usp_pwm_list_entry_get_pwm(pwm_entry);
-    name = usp_pwm_get_name(pwm);
-
-    if (strcmp(name, "odc1_pwm0") == 0) {
-      usp_pwm_ref(pwm);
-      throttle->lbt_pwm_left = pwm;
-    } else if (strcmp(name, "odc1_pwm1") == 0) {
-      usp_pwm_ref(pwm);
-      throttle->lbt_pwm_right = pwm;
-    }
-  }
-  usp_pwm_list_unref(pwm_list);
-
-  assert(throttle->lbt_pwm_left != NULL);
-  assert(throttle->lbt_pwm_right != NULL);
-
-  throttle->lbt_running = true;
-  throttle->lbt_max_accel = LB_THROTTLE_MAX_ACCEL;
-  throttle->lbt_current_power = 0;
-  throttle->lbt_target_power = 0;
-  pthread_mutex_init(&(throttle->lbt_mutex), NULL);
-  pthread_create(&(throttle->lbt_thread), NULL,
-      lb_throttle_runner, throttle);
-
-  return throttle;
+  return lb_throttle_internal_new("odc1_pwm0", "odc1_pwm1");
 }
 
 /**
@@ -83,6 +86,100 @@ lb_throttle_delete(struct lb_throttle_t *throttle)
   usp_pwm_unref(throttle->lbt_pwm_left);
   usp_pwm_unref(throttle->lbt_pwm_right);
   free(throttle);
+}
+
+/**
+ * @brief
+ *
+ * @param throttle
+ *
+ * @return
+ */
+int
+lb_throttle_start(struct lb_throttle_t *throttle)
+{
+  int rc;
+  struct usp_pwm_list_t *pwm_list;
+  struct usp_pwm_list_entry_t *pwm_entry;
+  struct usp_pwm_t *pwm;
+
+  pthread_mutex_lock(&(throttle->lbt_mutex));
+
+  if (throttle->lbt_running) {
+    rc = LB_THROTTLE_ERROR;
+    goto out;
+  }
+
+  pwm_list = usp_controller_get_pwms(throttle->lbt_pwm_controller);
+  if (pwm_list != NULL) {
+    rc = LB_NOT_FOUND;
+    goto out;
+  }
+
+  usp_pwm_list_foreach(pwm_list, pwm_entry)
+  {
+    const char *name;
+    pwm = usp_pwm_list_entry_get_pwm(pwm_entry);
+    name = usp_pwm_get_name(pwm);
+
+    if (strcmp(name, throttle->lbt_pwm_left_name) == 0) {
+      usp_pwm_ref(pwm);
+      throttle->lbt_pwm_left = pwm;
+    } else if (strcmp(name, throttle->lbt_pwm_right_name) == 0) {
+      usp_pwm_ref(pwm);
+      throttle->lbt_pwm_right = pwm;
+    }
+  }
+  usp_pwm_list_unref(pwm_list);
+
+  if (throttle->lbt_pwm_left == NULL || throttle->lbt_pwm_right == NULL) {
+    rc = LB_NOT_FOUND;
+    goto out;
+  }
+
+  throttle->lbt_running = true;
+  throttle->lbt_current_power = 0;
+  throttle->lbt_target_power = 0;
+
+  pthread_create(&(throttle->lbt_thread), NULL, lb_throttle_runner, throttle);
+
+  rc = LB_OK;
+out:
+
+  pthread_mutex_unlock(&(throttle->lbt_mutex));
+  return rc;
+}
+
+/**
+ * @brief
+ *
+ * @param throttle
+ *
+ * @return
+ */
+int
+lb_throttle_stop(struct lb_throttle_t *throttle)
+{
+  int rc;
+  void *ret_val;
+
+  pthread_mutex_lock(&(throttle->lbt_mutex));
+
+  if (!throttle->lbt_running) {
+    rc = LB_THROTTLE_ERROR;
+    goto out;
+  }
+
+  throttle->lbt_running = false;
+
+  pthread_join(throttle->lbt_thread, &ret_val);
+
+  rc = LB_OK;
+out:
+
+  pthread_mutex_unlock(&(throttle->lbt_mutex));
+  return rc;
+
 }
 
 /**
