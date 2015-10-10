@@ -22,12 +22,12 @@
 #include "throttle_internal.h"
 
 /**
- * @brief
+ * @brief Actually create a new throttle based on input parameters.
  *
- * @param pwm_left
- * @param pwm_right
+ * @param pwm_left The name of the left pwm.
+ * @param pwm_right The name of the right pwm.
  *
- * @return
+ * @return A new throttle.
  */
 struct lb_throttle_t *
 lb_throttle_internal_new(const char *pwm_left, const char *pwm_right)
@@ -51,9 +51,9 @@ lb_throttle_internal_new(const char *pwm_left, const char *pwm_right)
 }
 
 /**
- * @brief
+ * @brief Create a new test throttle.
  *
- * @return
+ * @return A test throttle.
  */
 struct lb_throttle_t *
 lb_throttle_test_new()
@@ -89,11 +89,11 @@ lb_throttle_delete(struct lb_throttle_t *throttle)
 }
 
 /**
- * @brief
+ * @brief Start the throttle.
  *
- * @param throttle
+ * @param throttle The throttle to start.
  *
- * @return
+ * @return A status code.
  */
 int
 lb_throttle_start(struct lb_throttle_t *throttle)
@@ -151,11 +151,11 @@ out:
 }
 
 /**
- * @brief
+ * @brief Stop the throttle.
  *
- * @param throttle
+ * @param throttle The throttle to stop.
  *
- * @return
+ * @return A status code.
  */
 int
 lb_throttle_stop(struct lb_throttle_t *throttle)
