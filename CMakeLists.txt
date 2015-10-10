@@ -11,6 +11,7 @@ project(${PROJECT_NAME})
 include(FindPkgConfig)
 include(CMakePackageConfigHelpers)
 pkg_search_module(LIBUSP REQUIRED libusp)
+pkg_search_module(BLUEZ REQUIRED bluez)
 find_library(M_LIB m)
 find_package(Threads REQUIRED)
 
@@ -45,7 +46,7 @@ include_directories(${UDEV_INCLUDE_DIRS})
 # Library
 add_library(${LIBLB_LIB} SHARED ${SOURCE_FILES})
 target_link_libraries(${LIBLB_LIB} ${LIBUSP_LIBRARIES}
-  ${M_LIB} ${CMAKE_THREAD_LIBS_INIT})
+  ${M_LIB} ${BLUEZ_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
 
 # Tests
 add_subdirectory(${LIBLB_TEST})

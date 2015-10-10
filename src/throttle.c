@@ -111,7 +111,7 @@ lb_throttle_start(struct lb_throttle_t *throttle)
   }
 
   pwm_list = usp_controller_get_pwms(throttle->lbt_pwm_controller);
-  if (pwm_list != NULL) {
+  if (pwm_list == NULL) {
     rc = LB_NOT_FOUND;
     goto out;
   }
@@ -231,6 +231,7 @@ lb_throttle_runner(void *ctx)
   assert(throttle != NULL);
 
   while ((rc = lb_throttle_start_pwms(throttle)) != 0) {
+    exit(-1);
     sleep(1);
   }
 
@@ -407,6 +408,7 @@ lb_throttle_start_pwms(struct lb_throttle_t *throttle)
 
 out:
   if (rc != 0) {
+    printf("failed to start pwms: %d\n", rc);
     lb_throttle_stop_pwms(throttle);
     rc = LB_PWM_ERROR;
   }
