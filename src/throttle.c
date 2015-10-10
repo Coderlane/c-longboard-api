@@ -167,19 +167,17 @@ lb_throttle_stop(struct lb_throttle_t *throttle)
 
   if (!throttle->lbt_running) {
     rc = LB_THROTTLE_ERROR;
+    pthread_mutex_unlock(&(throttle->lbt_mutex));
     goto out;
   }
 
   throttle->lbt_running = false;
+  pthread_mutex_unlock(&(throttle->lbt_mutex));
 
   pthread_join(throttle->lbt_thread, &ret_val);
-
   rc = LB_OK;
 out:
-
-  pthread_mutex_unlock(&(throttle->lbt_mutex));
   return rc;
-
 }
 
 /**
