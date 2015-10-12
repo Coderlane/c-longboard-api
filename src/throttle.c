@@ -81,10 +81,14 @@ void
 lb_throttle_delete(struct lb_throttle_t *throttle)
 {
   lb_throttle_set_running(throttle, false);
-
   usp_controller_delete(throttle->lbt_pwm_controller);
-  usp_pwm_unref(throttle->lbt_pwm_left);
-  usp_pwm_unref(throttle->lbt_pwm_right);
+
+  if(throttle->lbt_pwm_left != NULL)
+    usp_pwm_unref(throttle->lbt_pwm_left);
+
+  if(throttle->lbt_pwm_right != NULL)
+    usp_pwm_unref(throttle->lbt_pwm_right);
+
   free(throttle);
 }
 
@@ -164,7 +168,6 @@ lb_throttle_stop(struct lb_throttle_t *throttle)
   void *ret_val;
 
   pthread_mutex_lock(&(throttle->lbt_mutex));
-
   if (!throttle->lbt_running) {
     rc = LB_THROTTLE_ERROR;
     pthread_mutex_unlock(&(throttle->lbt_mutex));
