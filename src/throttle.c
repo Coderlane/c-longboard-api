@@ -231,7 +231,6 @@ lb_throttle_runner(void *ctx)
   assert(throttle != NULL);
 
   while ((rc = lb_throttle_start_pwms(throttle)) != 0) {
-    exit(-1);
     sleep(1);
   }
 
@@ -388,15 +387,6 @@ lb_throttle_start_pwms(struct lb_throttle_t *throttle)
 {
   int rc;
 
-  rc = usp_pwm_set_duty_cycle(throttle->lbt_pwm_left, 0.0f);
-  if (rc != 0) {
-    goto out;
-  }
-  rc = usp_pwm_set_duty_cycle(throttle->lbt_pwm_right, 0.0f);
-  if (rc != 0) {
-    goto out;
-  }
-
   rc = usp_pwm_enable(throttle->lbt_pwm_left);
   if (rc != 0) {
     goto out;
@@ -406,9 +396,17 @@ lb_throttle_start_pwms(struct lb_throttle_t *throttle)
     goto out;
   }
 
+  rc = usp_pwm_set_duty_cycle(throttle->lbt_pwm_left, 0.0f);
+  if (rc != 0) {
+    goto out;
+  }
+  rc = usp_pwm_set_duty_cycle(throttle->lbt_pwm_right, 0.0f);
+  if (rc != 0) {
+    goto out;
+  }
+
 out:
   if (rc != 0) {
-    printf("failed to start pwms: %d\n", rc);
     lb_throttle_stop_pwms(throttle);
     rc = LB_PWM_ERROR;
   }
