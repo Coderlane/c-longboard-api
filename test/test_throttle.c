@@ -1,4 +1,4 @@
-/**
+/*
  * @file test_ref.c
  * @brief
  * @author Travis Lane
@@ -56,6 +56,36 @@ START_TEST(test_throttle_early_stop)
 }
 END_TEST
 
+START_TEST(test_throttle_set_get_request)
+{
+  int rc;
+  float power;
+  struct lb_throttle_t *throttle = lb_throttle_test_new();
+  rc = lb_throttle_start(throttle);
+  fail_if(rc != 0, "Failed to start throttle.");
+
+  rc = lb_throttle_request_set(throttle, 0.0f);
+  fail_if(rc != 0, "Failed to set throttle power ");
+  rc = lb_throttle_request_get(throttle, &power);
+  fail_if(rc != 0, "Failed to get throttle power.");
+  fail_if(power != 0.0f, "Power was not the expected value.");
+
+  rc = lb_throttle_request_set(throttle, 33.3f);
+  fail_if(rc != 0, "Failed to set throttle power ");
+  rc = lb_throttle_request_get(throttle, &power);
+  fail_if(rc != 0, "Failed to get throttle power.");
+  fail_if(power != 33.3f, "Power was not the expected value.");
+
+  rc = lb_throttle_request_set(throttle, 100.0f);
+  fail_if(rc != 0, "Failed to set throttle power ");
+  rc = lb_throttle_request_get(throttle, &power);
+  fail_if(rc != 0, "Failed to get throttle power.");
+  fail_if(power != 100.0f, "Power was not the expected value.");
+
+  lb_throttle_delete(throttle);
+}
+END_TEST
+
 Suite *
 suite_throttle_new()
 {
@@ -66,7 +96,12 @@ suite_throttle_new()
   tcase_add_test(case_tss, test_throttle_double_start);
   tcase_add_test(case_tss, test_throttle_early_stop);
 
+  TCase *case_ts = tcase_create("test_throttle_set");
+  tcase_set_timeout(case_ts, 10);
+  tcase_add_test(case_ts, test_throttle_set_get_request);
+
   suite_add_tcase(suite, case_tss);
+  suite_add_tcase(suite, case_ts);
   return suite;
 }
 
