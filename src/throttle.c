@@ -232,11 +232,15 @@ lb_throttle_runner(void *ctx)
   struct timespec *sleep_in_ptr, *sleep_out_ptr, *sleep_tmp_ptr;
   struct lb_throttle_t *throttle = ctx;
   assert(throttle != NULL);
+  bool running;
 
   while ((rc = lb_throttle_start_pwms(throttle)) != 0 &&
-         lb_throttle_get_running(throttle) == true) {
+         (running = lb_throttle_get_running(throttle)) == true) {
     sleep(1);
   }
+
+  if(!running)
+    goto out;
 
   while (lb_throttle_get_running(throttle) == true) {
     pthread_mutex_lock(&(throttle->lbt_mutex));
@@ -272,6 +276,7 @@ lb_throttle_runner(void *ctx)
     }
   }
 
+out:
   return NULL;
 }
 
