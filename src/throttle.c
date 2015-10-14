@@ -233,7 +233,8 @@ lb_throttle_runner(void *ctx)
   struct lb_throttle_t *throttle = ctx;
   assert(throttle != NULL);
 
-  while ((rc = lb_throttle_start_pwms(throttle)) != 0) {
+  while ((rc = lb_throttle_start_pwms(throttle)) != 0 &&
+         lb_throttle_get_running(throttle) == true) {
     sleep(1);
   }
 
