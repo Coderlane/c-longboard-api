@@ -108,7 +108,6 @@ lb_throttle_start(struct lb_throttle_t *throttle)
   struct usp_pwm_t *pwm;
 
   pthread_mutex_lock(&(throttle->lbt_mutex));
-
   if (throttle->lbt_running) {
     rc = LB_THROTTLE_ERROR;
     goto out;
@@ -234,12 +233,12 @@ lb_throttle_runner(void *ctx)
   assert(throttle != NULL);
   bool running;
 
-  while ((rc = lb_throttle_start_pwms(throttle)) != 0 &&
-         (running = lb_throttle_get_running(throttle)) == true) {
+  while (((running = lb_throttle_get_running(throttle)) == true) &&
+         ((rc = lb_throttle_start_pwms(throttle)) != 0)) {
     sleep(1);
   }
 
-  if(!running)
+  if (!running)
     goto out;
 
   while (lb_throttle_get_running(throttle) == true) {
