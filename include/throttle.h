@@ -13,9 +13,9 @@
  * @brief The maximum amount of power to change by in cycle. If you
  * change the cycle, don't forget to change this value.
  *
- * Currently 10% of power per second.
+ * Currently 20% of power per second.
  */
-#define LB_THROTTLE_MAX_ACCEL 0.1f
+#define LB_THROTTLE_MAX_ACCEL 2.0f
 
 /**
  * @brief The time in seconds to sleep before changing the power level.

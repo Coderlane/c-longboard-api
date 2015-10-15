@@ -100,17 +100,23 @@ START_TEST(test_throttle_set_get_request_timed)
   fail_if(rc != 0, "Failed to get throttle power.");
   fail_if(power != 0.0f, "Power was not the expected value.");
 
-  sleep(1);
   rc = lb_throttle_current_get(throttle, &power);
-  fail_if(rc != 0, "Failed to get throttle power.");
-  fail_if(power != 55.0f, "Power was not expected value. "
-                          "Power: %f Expected: %f\n", power, 55.0f);
+  fail_if(rc != 0, "Failed to get throttle power. %d", rc);
+  fail_if(power != 00.0f, "Power was not expected value. "
+                          "Power: %f Expected: %f\n", power, 00.0f);
 
   rc = lb_throttle_request_set(throttle, 100.0f);
   fail_if(rc != 0, "Failed to set throttle power ");
   rc = lb_throttle_request_get(throttle, &power);
   fail_if(rc != 0, "Failed to get throttle power.");
   fail_if(power != 100.0f, "Power was not the expected value.");
+
+  sleep(1);
+
+  rc = lb_throttle_current_get(throttle, &power);
+  fail_if(rc != 0, "Failed to get throttle power.");
+  fail_if(power != 20.0f, "Power was not expected value. "
+                          "Power: %f Expected: %f\n", power, 20.0f);
 
   lb_throttle_delete(throttle);
 }

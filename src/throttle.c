@@ -243,9 +243,10 @@ lb_throttle_runner(void *ctx)
 
   while (lb_throttle_get_running(throttle) == true) {
     pthread_mutex_lock(&(throttle->lbt_mutex));
+
     if (throttle->lbt_current_power != throttle->lbt_target_power) {
-      float diff = throttle->lbt_current_power - throttle->lbt_target_power;
-      float current_power = throttle->lbt_target_power;
+      float diff = throttle->lbt_target_power - throttle->lbt_current_power;
+      float current_power = throttle->lbt_current_power;
 
       if (fabsf(diff) > LB_THROTTLE_MAX_ACCEL) {
         current_power = diff > 0 ? current_power + LB_THROTTLE_MAX_ACCEL
@@ -358,6 +359,7 @@ lb_throttle_current_get(struct lb_throttle_t *throttle, float *out_power)
 {
   int rc;
   float power_left, power_right;
+  power_left = power_right = 0.0f;
 
   rc = usp_pwm_get_duty_cycle(throttle->lbt_pwm_left, &power_left);
   if(rc != USP_OK) {
