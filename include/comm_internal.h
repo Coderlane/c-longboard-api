@@ -11,13 +11,14 @@
 
 #include "comm.h"
 
-typedef void (*lc_comm_delete_func)(struct lc_comm_t *);
+typedef void (*lc_comm_generic_func)(struct lc_comm_t *);
+typedef void (*lc_comm_get_float_func)(struct lc_comm_t*, float *out);
 
 struct lc_comm_t {
   enum lc_comm_type_t lcc_type;
   void *lcc_ctx;
 
-  lc_comm_delete_func lcc_delete_func;
+  lc_comm_generic_func lcc_delete_func;
 };
 
 struct lc_comm_bt_t {
@@ -26,7 +27,12 @@ struct lc_comm_bt_t {
 };
 
 struct lc_comm_t *lc_comm_new(enum lc_comm_type_t type, void *ctx,
-                              lc_comm_delete_func delete_func);
+                              lc_comm_generic_func delete_func);
 void lc_comm_bt_delete(struct lc_comm_t *comm);
+
+void lc_comm_open(struct lc_comm_t *comm);
+void lc_comm_close(struct lc_comm_t *comm);
+
+int lc_comm_get_power(struct lc_comm_t *comm, float *out_power);
 
 #endif /* LONGBOARD_COMM_INTERNAL */
