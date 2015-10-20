@@ -16,8 +16,8 @@ struct lb_comm_t;
 struct lb_comm_t *lb_comm_bt_new(const char *addr);
 void lb_comm_delete(struct lb_comm_t *comm);
 
-int lb_comm_bt_open(struct lb_comm_t *comm);
-int lb_comm_bt_close(struct lb_comm_t *comm);
-int lb_comm_bt_get_power(struct lb_comm_t *comm, float *out_power);
+int lb_comm_open(struct lb_comm_t *comm);
+int lb_comm_close(struct lb_comm_t *comm);
+int lb_comm_get_power(struct lb_comm_t *comm, float *out_power);
 
 #endif /*LONGBOARD_COMM_H */

@@ -47,3 +47,21 @@ lb_comm_delete(struct lb_comm_t *comm)
 {
   comm->lbc_delete_func(comm);
 }
+
+int
+lb_comm_open(struct lb_comm_t *comm)
+{
+  return comm->lbc_open_func(comm);
+}
+
+int
+lb_comm_close(struct lb_comm_t *comm)
+{
+  return comm->lbc_close_func(comm);
+}
+
+int
+lb_comm_get_power(struct lb_comm_t *comm, float *out_power)
+{
+  return comm->lbc_get_power_func(comm, out_power);
+}
