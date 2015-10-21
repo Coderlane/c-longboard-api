@@ -31,13 +31,22 @@
 struct lb_comm_t *
 lb_comm_bt_new(const char *addr)
 {
+  struct lb_comm_t *comm;
   struct lb_comm_bt_t *bt_comm;
 
   bt_comm = malloc(sizeof(struct lb_comm_bt_t));
+  assert(bt_comm != NULL);
+
   bt_comm->lbc_bt_addr = addr;
   bt_comm->lbc_bt_socket = -1;
 
-  return lb_comm_new(LB_COMM_BT, bt_comm, lb_comm_bt_delete);
+  comm = lb_comm_new(LB_COMM_BT, bt_comm);
+  comm->lbc_delete_func = lb_comm_bt_delete;
+  comm->lbc_open_func = lb_comm_bt_open;
+  comm->lbc_close_func = lb_comm_bt_close;
+  comm->lbc_get_power_func = lb_comm_bt_get_power;
+
+  return comm;
 }
 
 /**
@@ -45,7 +54,7 @@ lb_comm_bt_new(const char *addr)
  *
  * @param comm The comm to delete.
  */
-void
+int
 lb_comm_bt_delete(struct lb_comm_t *comm)
 {
   struct lb_comm_bt_t *bt_comm = comm->lbc_ctx;
@@ -57,6 +66,7 @@ lb_comm_bt_delete(struct lb_comm_t *comm)
 
   free(bt_comm);
   free(comm);
+  return LB_OK;
 }
 
 /**

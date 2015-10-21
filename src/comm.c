@@ -22,17 +22,15 @@
  * @return A new comm object.
  */
 struct lb_comm_t *
-lb_comm_new(enum lb_comm_type_t type, void *ctx,
-            lb_comm_generic_func delete_func)
+lb_comm_new(enum lb_comm_type_t type, void *ctx)
 {
   struct lb_comm_t *comm;
-  comm = malloc(sizeof(struct lb_comm_t));
+
+  comm = calloc(sizeof(struct lb_comm_t), 1);
   assert(comm != NULL);
 
   comm->lbc_type = type;
   comm->lbc_ctx = ctx;
-
-  comm->lbc_delete_func = delete_func;
 
   return comm;
 }
@@ -42,10 +40,10 @@ lb_comm_new(enum lb_comm_type_t type, void *ctx,
  *
  * @param comm The comm object to delete.
  */
-void
+int
 lb_comm_delete(struct lb_comm_t *comm)
 {
-  comm->lbc_delete_func(comm);
+  return comm->lbc_delete_func(comm);
 }
 
 int
